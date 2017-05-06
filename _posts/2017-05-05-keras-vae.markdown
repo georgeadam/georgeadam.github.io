@@ -1,0 +1,326 @@
+---
+layout: post
+title:  "Text Variational Autoencoder in Keras"
+date:   2017-05-05 3:00:00 -0500
+categories: ml
+---
+
+Welcome back guys.
+
+Today brings a tutorial on how to make a text variational autoencoder (VAE) in Keras with a twist. Instead of just
+having a vanilla VAE, we'll also be making predictions based on the latent space representations of our text. The model
+will be trained on the IMDB dataset available in Keras, and the goal of the model will be to simultaneously reconstruct 
+movie reviews and predict their sentiment.
+
+Note that due to the large size of the dataset, a very large amount of RAM is required to train the model using many words. I have 
+64GB and even that isn't enough since we need one hot encodings of the reviews which results in a shape of `(num_reviews, max_review_len, vocab_size)`.
+
+## Basic VAE Knowledge
+In case some of you don't know how VAEs work, I'm going to briefly describe the idea here. Feel free to skip this section
+if you're familiar with the concept.
+
+Before continuing with the description of how VAEs work, let's first discuss what this so called latent space is. We begin by illustrating 
+the similarity in expressiveness between human languages. The purpose of text
+is to convey some knowledge or meaning, and this is what is achieved via human languages such as English, Arabic, or even Japanese. 
+Notice how syntacically different these languages are, yet they're all able to convey meaning and knowledge (as long as the reader knows
+the language).
+
+The fact that these languages are so different, and that people are able to communicate just as well with either one of them
+suggests that there is something going on behind the scenes. This tells us that language is a sort of physical realization of abstract concepts
+like intention, knowledge, and emotion. Thus, what matters when determining whether a movie review is negative or positive depends on the ideas
+conveyed in that review, and not the particular English words. This brings us to the concept of a latent space. For the model we are using,
+the latent space contains the meaning of movie reviews encoded as numerical vectors, and it is these vectors that are used to determine if a review is positive
+as well as reconstructing the original review.
+
+A variational autoencoder is similar to a regular autoencoder except that it is a generative model. This "generative" aspect 
+stems from placing an additional constraint on the loss function such that the latent space is spread out and doesn't contain
+dead zones where reconstructing an input from those locations results in garbage. By doing this, we can randomly sample a vector
+from the latent space and hopefully create a meaninful decoded output from it.
+
+![vae-diagram](/assets/VAE.png){:class="img-responsive"}
+
+The "variational" part comes from the fact that we're trying to approximate the posterior distribution \\( p_{\theta}(z | x) \\) with a variational
+distribution \\( q_{\phi}(z | x) \\). Thus, the encoder outputs parameters to this variational distribution which is just a multivariate Gaussian
+distribution, and the latent representation is obtained by then sampling this distribution. The decoder then takes the latent 
+representation and tries to reconstruct the original input from it.
+
+## Python Code
+Here is the source code for the Keras model used to solve the problem mentioned at the beginning of this blog post.
+
+### Model
+The model we are using is a consists of 3 distinct components
+
+- A bidirectional RNN encoder
+- A simple linear single-layer fully-connected classification network
+- An RNN decoder
+
+The choice to have a bidirectional RNN encoder has to do with RNNs being better able to represent the more recent parts of the input sequence 
+in their hidden states. By using a bidirectional RNN where the hidden states are concatenated, we mitigate the issue of not being able to remember
+the earliest parts of the sequence.
+
+The model.py file is quite large, so we'll explore it section by section.
+
+#### Imports
+Naturally, we have several features from Keras that must be imported due to the complexity of the model.
+
+{% highlight python %}
+from keras import objectives, backend as K
+from keras.layers import Bidirectional, Dense, Embedding, Input, Lambda, LSTM, RepeatVector, TimeDistributed
+from keras.models import Model
+import keras
+{% endhighlight %}
+
+#### Main Components
+
+{% highlight python %}
+class VAE(object):
+    def create(self, vocab_size=500, max_length=300, latent_rep_size=200):
+        self.encoder = None
+        self.decoder = None
+        self.sentiment_predictor = None
+        self.autoencoder = None
+
+        x = Input(shape=(max_length,))
+        x_embed = Embedding(vocab_size, 64, input_length=max_length)(x)
+
+        vae_loss, encoded = self._build_encoder(x_embed, latent_rep_size=latent_rep_size, max_length=max_length)
+        self.encoder = Model(inputs=x, outputs=encoded)
+
+        encoded_input = Input(shape=(latent_rep_size,))
+        predicted_sentiment = self._build_sentiment_predictor(encoded_input)
+        self.sentiment_predictor = Model(encoded_input, predicted_sentiment)
+
+        decoded = self._build_decoder(encoded_input, vocab_size, max_length)
+        self.decoder = Model(encoded_input, decoded)
+
+        self.autoencoder = Model(inputs=x, outputs=[self._build_decoder(encoded, vocab_size, max_length), self._build_sentiment_predictor(encoded)])
+        self.autoencoder.compile(optimizer='Adam',
+                                 loss=[vae_loss, 'binary_crossentropy'],
+                                 metrics=['accuracy'])
+{% endhighlight %}
+
+Let's break things down one at a time.
+
+The following simply takes the input sequences and converts them into sequences of learned word embeddings. In a nutshell,
+these embeddings are vector representations of words, and it can be shown that langauge models tend to have semantically similar
+words close together in embedding space with PCA and tSNE (not to be confused with latent space).
+
+{% highlight python %}
+x = Input(shape=(max_length,))
+x_embed = Embedding(vocab_size, 32, input_length=max_length)(x)
+{% endhighlight %}
+
+Then, we create the encoder and VAE loss function. Note `self._build_encoder(x_embed, latent_rep_size=latent_rep_size, max_length=max_length)`  will be defined later.
+{% highlight python %}
+vae_loss, encoded = self._build_encoder(x_embed, latent_rep_size=latent_rep_size, max_length=max_length)
+self.encoder = Model(inputs=x, outputs=encoded)
+{% endhighlight %}
+
+Now we create the sentiment prediction model based on the encoded latent space representation. Again, `self._build_sentiment_predictor(encoded_input)` will be defined later.
+{% highlight python %}
+encoded_input = Input(shape=(latent_rep_size,))
+predicted_sentiment = self._build_sentiment_predictor(encoded_input)
+self.sentiment_predictor = Model(encoded_input, predicted_sentiment)
+{% endhighlight %}
+
+Based on the encoded latent space representation, we can create the decoder. Again, `self._build_decoder(encoded, vocab_size, max_length)` will be defined later.
+{% highlight python %}
+decoded = self._build_decoder(encoded_input, vocab_size, max_length)
+self.decoder = Model(encoded_input, decoded)
+{% endhighlight %}
+
+Finally, we build the actual autoencoder itself. Notice how there are 2 outputs, one for the reconstructed input and one for the predicted sentiment.
+{% highlight python %}
+self.autoencoder = Model(inputs=x, outputs=[self._build_decoder(encoded, vocab_size, max_length), self._build_sentiment_predictor(encoded)])
+self.autoencoder.compile(optimizer='Adam',
+                         loss=[vae_loss, 'binary_crossentropy'],
+                         metrics=['accuracy'])
+{% endhighlight %}
+
+As promised, we now define the methods that build the encoder, decoder, and sentiment prediction model. Note that these 
+are all part of the VAE class created above.
+
+#### _build_encoder(self, x, latent_rep_size=200, max_length=300, epsilon_std=0.01)
+We'll start off with the encoder since it is the most complicated one. Essentially, the encoder is a stacked bidirectional RNN that then outputs parameters
+to be used by the `sampling()` function. The resulting parameters are named `z_mean` and `z_log_var`. The sampling function simply takes a random sample of the appropriate size from a multivariate Gaussian distribution. Lastly, the VAE loss is just the standard reconstruction loss with added cross entropy loss.
+
+{% highlight python %}
+def _build_encoder(self, x, latent_rep_size=200, max_length=300, epsilon_std=0.01):
+    h = Bidirectional(LSTM(500, return_sequences=True, name='lstm_1'), merge_mode='concat')(x)
+    h = Bidirectional(LSTM(500, return_sequences=False, name='lstm_2'), merge_mode='concat')(h)
+    h = Dense(435, activation='relu', name='dense_1')(h)
+
+    def sampling(args):
+        z_mean_, z_log_var_ = args
+        batch_size = K.shape(z_mean_)[0]
+        epsilon = K.random_normal(shape=(batch_size, latent_rep_size), mean=0., stddev=epsilon_std)
+        return z_mean_ + K.exp(z_log_var_ / 2) * epsilon
+
+    z_mean = Dense(latent_rep_size, name='z_mean', activation='linear')(h)
+    z_log_var = Dense(latent_rep_size, name='z_log_var', activation='linear')(h)
+
+    def vae_loss(x, x_decoded_mean):
+        x = K.flatten(x)
+        x_decoded_mean = K.flatten(x_decoded_mean)
+        xent_loss = max_length * objectives.binary_crossentropy(x, x_decoded_mean)
+        kl_loss = - 0.5 * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
+        return xent_loss + kl_loss
+
+    return (vae_loss, Lambda(sampling, output_shape=(latent_rep_size,), name='lambda')([z_mean, z_log_var]))
+{% endhighlight %}
+
+#### _build_decoder(self, encoded, vocab_size, max_length)
+The decoder is simpler. What it does it take a latent space representation, repeat it for the maximum sequence length, and use that as input to a stacked RNN. 
+The output of the stacked RNN is then fed into a Dense layer which is applied to every single time step of the RNN output using the TimeDistributed wrapper. Notice
+how the Dense layer has a softmax activation since we will be outputting probabilities for the words in our vocabulary. 
+
+{% highlight python %}
+def _build_decoder(self, encoded, vocab_size, max_length):
+    repeated_context = RepeatVector(max_length)(encoded)
+
+    h = LSTM(500, return_sequences=True, name='dec_lstm_1')(repeated_context)
+    h = LSTM(500, return_sequences=True, name='dec_lstm_2')(h)
+
+    decoded = TimeDistributed(Dense(vocab_size, activation='softmax'), name='decoded_mean')(h)
+
+    return decoded
+{% endhighlight %}
+
+If the above decoder looks like its shape doesn't match the shape of our input, you've made an astute observation. Recall that our input
+will have shape `(batch_size, max_length)` since that is a requirement for the Embedding layer. However, the output of the decoder has shape 
+`(batch_size, max_length, vocab_size)` since this is a requirement for the cross entropy part of the VAE loss function. This means that when we train the model,
+the input will be a numpy array where each row is a training example, and every column is a numerical index bounded by the number of words in our vocabulary. The 
+target output will just be a one-hot representation of the input matrix having shape `(num_examples, max_length, vocab_size)`.
+
+#### _build_sentiment_predictor(self, encoded)
+Last but not least, let's look at the sentiment prediction model. It is as simple as possible so that the latent space should in theory form two clearly separated 
+regions based on sentiment when projected with PCA. If the prediction model has too high a capacity, then the latent space won't be encouraged to form a linearly separable
+shape. Notice that the final Dense layer has a sigmoid activation due to the fact that we are predicting binary outcomes.
+
+{% highlight python %}
+def _build_sentiment_predictor(self, encoded):
+    h = Dense(100, activation='linear')(encoded)
+
+    return Dense(1, activation='sigmoid', name='pred')(h)
+{% endhighlight %}
+
+
+### Training the Model
+Here we will see how to create the inputs for our model and how to train it.
+
+Note that when training with GPU, I had to use the Theano backend as tensorflow was giving strange errors. Training using CPU presents no such issues.
+
+#### Imports
+We import ModelCheckpoint so that we can save our model as it makes progress. The IMDB dataset is found in `keras.datasets`
+
+{% highlight python %}
+from keras.callbacks import ModelCheckpoint
+from keras.datasets import imdb
+from keras.preprocessing.sequence import pad_sequences
+from model import VAE
+import numpy as np
+import os
+{% endhighlight %}
+
+#### Create Inputs
+
+We start off by defining the maximum number of words to be used, as well as the maximum length of any review.
+
+{% highlight python %}
+MAX_LENGTH = 300
+NUM_WORDS = 1000
+{% endhighlight %}
+
+Next we load the data and inspect its shape.
+
+{% highlight python %}
+(X_train, y_train), (X_test, y_test) = imdb.load_data(num_words=NUM_WORDS)
+
+print("Training data")
+print(X_train.shape)
+print(y_train.shape)
+
+print("Number of words:")
+print(len(np.unique(np.hstack(X_train))))
+{% endhighlight %}
+
+Let's now zero-pad the sequences (reviews) and subset the data so that we can later create 
+one hot representations of it without running out of memory.
+
+{% highlight python %}
+X_train = pad_sequences(X_train, maxlen=MAX_LENGTH)
+X_test = pad_sequences(X_test, maxlen=MAX_LENGTH)
+
+train_indices = np.random.choice(np.arange(X_train.shape[0]), 2000, replace=False)
+test_indices = np.random.choice(np.arange(X_test.shape[0]), 1000, replace=False)
+
+X_train = X_train[train_indices]
+y_train = y_train[train_indices]
+
+X_test = X_test[test_indices]
+y_test = y_test[test_indices]
+{% endhighlight %}
+
+
+Here comes the tricky part. Making one hot representations of the reviews takes some clever indexing since we are
+trying to index a 3D array with 2D array.
+
+{% highlight python %}
+temp = np.zeros((X_train.shape[0], MAX_LENGTH, NUM_WORDS))
+temp[np.expand_dims(np.arange(X_train.shape[0]), axis=0).reshape(X_train.shape[0], 1), np.repeat(np.array([np.arange(MAX_LENGTH)]), X_train.shape[0], axis=0), X_train] = 1
+
+X_train_one_hot = temp
+
+temp = np.zeros((X_test.shape[0], MAX_LENGTH, NUM_WORDS))
+temp[np.expand_dims(np.arange(X_test.shape[0]), axis=0).reshape(X_test.shape[0], 1), np.repeat(np.array([np.arange(MAX_LENGTH)]), X_test.shape[0], axis=0), X_test] = 1
+
+x_test_one_hot = temp
+{% endhighlight %}
+
+#### Create Checkpoint
+We want to be able to save our model at the end of each epoch if an improvement was made. This enables reproducibility of results, and if something goes wrong,
+we can reload the most recent model without having to restart the whole training procedure all over again.
+
+{% highlight python %}
+def create_model_checkpoint(dir, model_name):
+    filepath = dir + '/' + \
+               model_name + "-{epoch:02d}-{val_decoded_mean_acc:.2f}-{val_pred_loss:.2f}.h5"
+    directory = os.path.dirname(filepath)
+
+    try:
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+
+    checkpointer = ModelCheckpoint(filepath=filepath,
+                                   verbose=1,
+                                   save_best_only=False)
+
+    return checkpointer
+{% endhighlight %}
+
+#### Fit the Data
+
+We are almost done! All that remains is to instantiate the model and fit the data. The following function does just that.
+
+{% highlight python %}
+def train():
+    model = VAE()
+    model.create(vocab_size=NUM_WORDS, max_length=MAX_LENGTH)
+
+    checkpointer = create_model_checkpoint('models', 'rnn_ae')
+
+    model.autoencoder.fit(x=X_train, y={'decoded_mean': X_train_one_hot, 'pred': y_train},
+                          batch_size=10, epochs=10, callbacks=[checkpointer],
+                          validation_data=(X_test, {'decoded_mean': x_test_one_hot, 'pred':  y_test}))
+{% endhighlight %}
+
+## Results
+
+I haven't trained the model for long at this point, so the results aren't noteworthy. Also, I haven't yet investigated what the optimal
+number of parameters for the model is, so that remains to be seen. Furthermore, the memory limitation also puts an upper bound on the 
+quality of results that can be obtained.
+
+However, now that you know how to build such a model, you can apply it to other datasets that are less memory intensive and probably get some decent results.
+
+Stay tuned for further developments!
