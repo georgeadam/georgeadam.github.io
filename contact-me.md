@@ -4,8 +4,8 @@ title: Contact Me
 permalink: /contact-me/
 ---
 
-<div class="img_container">
-![Me](/assets/profile.jpg){: height="252px" width="210px"}
+<div id="profile" class="img_container">
+![Me](/assets/profile_2.jpg){: height="252px" width="300px"}
 </div>
 
 Hey guys, I'm Alex.
