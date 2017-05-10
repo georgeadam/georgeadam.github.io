@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Text Variational Autoencoder in Keras</title>
+  <meta name="description" content="Welcome back guys.">
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://localhost:4000/ml/2017/05/05/keras-vae.html">
+  <link rel="alternate" type="application/rss+xml" title="George (Alex) Adam" href="/feed.xml">
+  
+  
+</head>
+
+
+  <body>
+
+    <header class="site-header" role="banner">
+
+  <div class="wrapper">
+    
+    
+    <a class="site-title" href="/">George (Alex) Adam</a>
+  
+    
+      <nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+              <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+              <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger">
+          
+            
+            
+            <a class="page-link" href="/contact-me/">Contact Me</a>
+            
+          
+            
+            
+            <a class="page-link" href="/">Blog</a>
+            
+          
+            
+            
+          
+            
+            
+          
+        </div>
+      </nav>
+    
+  </div>
+</header>
+
+
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <script type="text/javascript"
+    src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Text Variational Autoencoder in Keras</h1>
+    <p class="post-meta">
+      <time datetime="2017-05-05T04:00:00-04:00" itemprop="datePublished">
+        
+        May 5, 2017
+      </time>
+      </p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>Welcome back guys.</p>
+
+<p>Today brings a tutorial on how to make a text variational autoencoder (VAE) in Keras with a twist. Instead of just
+having a vanilla VAE, we’ll also be making predictions based on the latent space representations of our text. The model
+will be trained on the IMDB dataset available in Keras, and the goal of the model will be to simultaneously reconstruct 
+movie reviews and predict their sentiment.</p>
+
+<p>Note that due to the large size of the dataset, a very large amount of RAM is required to train the model using many words. I have 
+64GB and even that isn’t enough since we need one hot encodings of the reviews which results in a shape of <code class="highlighter-rouge">(num_reviews, max_review_len, vocab_size)</code>.</p>
+
+<h2 id="basic-vae-knowledge">Basic VAE Knowledge</h2>
+<p>In case some of you don’t know how VAEs work, I’m going to briefly describe the idea here. Feel free to skip this section
+if you’re familiar with the concept.</p>
+
+<p>Before continuing with the description of how VAEs work, let’s first discuss what this so called latent space is. We begin by illustrating 
+the similarity in expressiveness between human languages. The purpose of text
+is to convey some knowledge or meaning, and this is what is achieved via human languages such as English, Arabic, or even Japanese. 
+Notice how syntacically different these languages are, yet they’re all able to convey meaning and knowledge (as long as the reader knows
+the language).</p>
+
+<p>The fact that these languages are so different, and that people are able to communicate just as well with either one of them
+suggests that there is something going on behind the scenes. This tells us that language is a sort of physical realization of abstract concepts
+like intention, knowledge, and emotion. Thus, what matters when determining whether a movie review is negative or positive depends on the ideas
+conveyed in that review, and not the particular English words. This brings us to the concept of a latent space. For the model we are using,
+the latent space contains the meaning of movie reviews encoded as numerical vectors, and it is these vectors that are used to determine if a review is positive
+as well as reconstructing the original review.</p>
+
+<p>A variational autoencoder is similar to a regular autoencoder except that it is a generative model. This “generative” aspect 
+stems from placing an additional constraint on the loss function such that the latent space is spread out and doesn’t contain
+dead zones where reconstructing an input from those locations results in garbage. By doing this, we can randomly sample a vector
+from the latent space and hopefully create a meaninful decoded output from it.</p>
+
+<p><img src="/assets/VAE.png" alt="vae-diagram" class="img-responsive" /></p>
+
+<p>The “variational” part comes from the fact that we’re trying to approximate the posterior distribution \( p_{\theta}(z | x) \) with a variational
+distribution \( q_{\phi}(z | x) \). Thus, the encoder outputs parameters to this variational distribution which is just a multivariate Gaussian
+distribution, and the latent representation is obtained by then sampling this distribution. The decoder then takes the latent 
+representation and tries to reconstruct the original input from it.</p>
+
+<h2 id="python-code">Python Code</h2>
+<p>Here is the source code for the Keras model used to solve the problem mentioned at the beginning of this blog post.</p>
+
+<h3 id="model">Model</h3>
+<p>The model we are using is a consists of 3 distinct components</p>
+
+<ul>
+  <li>A bidirectional RNN encoder</li>
+  <li>A simple linear single-layer fully-connected classification network</li>
+  <li>An RNN decoder</li>
+</ul>
+
+<p>The choice to have a bidirectional RNN encoder has to do with RNNs being better able to represent the more recent parts of the input sequence 
+in their hidden states. By using a bidirectional RNN where the hidden states are concatenated, we mitigate the issue of not being able to remember
+the earliest parts of the sequence.</p>
+
+<p>The model.py file is quite large, so we’ll explore it section by section.</p>
+
+<h4 id="imports">Imports</h4>
+<p>Naturally, we have several features from Keras that must be imported due to the complexity of the model.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">keras</span> <span class="kn">import</span> <span class="n">objectives</span><span class="p">,</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="kn">import</span> <span class="n">Bidirectional</span><span class="p">,</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Embedding</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Lambda</span><span class="p">,</span> <span class="n">LSTM</span><span class="p">,</span> <span class="n">RepeatVector</span><span class="p">,</span> <span class="n">TimeDistributed</span>
+<span class="kn">from</span> <span class="nn">keras.models</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">import</span> <span class="nn">keras</span></code></pre>
+</figure>
+
+<h4 id="main-components">Main Components</h4>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">VAE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vocab_size</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">latent_rep_size</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_predictor</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoencoder</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">max_length</span><span class="p">,))</span>
+        <span class="n">x_embed</span> <span class="o">=</span> <span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">input_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">vae_loss</span><span class="p">,</span> <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_encoder</span><span class="p">(</span><span class="n">x_embed</span><span class="p">,</span> <span class="n">latent_rep_size</span><span class="o">=</span><span class="n">latent_rep_size</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">encoded</span><span class="p">)</span>
+
+        <span class="n">encoded_input</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_rep_size</span><span class="p">,))</span>
+        <span class="n">predicted_sentiment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_sentiment_predictor</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sentiment_predictor</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">predicted_sentiment</span><span class="p">)</span>
+
+        <span class="n">decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_decoder</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">decoded</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_build_decoder</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_sentiment_predictor</span><span class="p">(</span><span class="n">encoded</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">autoencoder</span><span class="o">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s">'Adam'</span><span class="p">,</span>
+                                 <span class="n">loss</span><span class="o">=</span><span class="p">[</span><span class="n">vae_loss</span><span class="p">,</span> <span class="s">'binary_crossentropy'</span><span class="p">],</span>
+                                 <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">'accuracy'</span><span class="p">])</span></code></pre>
+</figure>
+
+<p>Let’s break things down one at a time.</p>
+
+<p>The following simply takes the input sequences and converts them into sequences of learned word embeddings. In a nutshell,
+these embeddings are vector representations of words, and it can be shown that langauge models tend to have semantically similar
+words close together in embedding space with PCA and tSNE (not to be confused with latent space).</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">max_length</span><span class="p">,))</span>
+<span class="n">x_embed</span> <span class="o">=</span> <span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="n">input_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span></code></pre>
+</figure>
+
+<p>Then, we create the encoder and VAE loss function. Note <code class="highlighter-rouge">self._build_encoder(x_embed, latent_rep_size=latent_rep_size, max_length=max_length)</code>  will be defined later.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">vae_loss</span><span class="p">,</span> <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_encoder</span><span class="p">(</span><span class="n">x_embed</span><span class="p">,</span> <span class="n">latent_rep_size</span><span class="o">=</span><span class="n">latent_rep_size</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">encoded</span><span class="p">)</span></code></pre>
+</figure>
+
+<p>Now we create the sentiment prediction model based on the encoded latent space representation. Again, <code class="highlighter-rouge">self._build_sentiment_predictor(encoded_input)</code> will be defined later.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">encoded_input</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_rep_size</span><span class="p">,))</span>
+<span class="n">predicted_sentiment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_sentiment_predictor</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">sentiment_predictor</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">predicted_sentiment</span><span class="p">)</span></code></pre>
+</figure>
+
+<p>Based on the encoded latent space representation, we can create the decoder. Again, <code class="highlighter-rouge">self._build_decoder(encoded, vocab_size, max_length)</code> will be defined later.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_decoder</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">encoded_input</span><span class="p">,</span> <span class="n">decoded</span><span class="p">)</span></code></pre>
+</figure>
+
+<p>Finally, we build the actual autoencoder itself. Notice how there are 2 outputs, one for the reconstructed input and one for the predicted sentiment.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="bp">self</span><span class="o">.</span><span class="n">autoencoder</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_build_decoder</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_sentiment_predictor</span><span class="p">(</span><span class="n">encoded</span><span class="p">)])</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">autoencoder</span><span class="o">.</span><span class="nb">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s">'Adam'</span><span class="p">,</span>
+                         <span class="n">loss</span><span class="o">=</span><span class="p">[</span><span class="n">vae_loss</span><span class="p">,</span> <span class="s">'binary_crossentropy'</span><span class="p">],</span>
+                         <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s">'accuracy'</span><span class="p">])</span></code></pre>
+</figure>
+
+<p>As promised, we now define the methods that build the encoder, decoder, and sentiment prediction model. Note that these 
+are all part of the VAE class created above.</p>
+
+<h4 id="_build_encoderself-x-latent_rep_size200-max_length300-epsilon_std001">_build_encoder(self, x, latent_rep_size=200, max_length=300, epsilon_std=0.01)</h4>
+<p>We’ll start off with the encoder since it is the most complicated one. Essentially, the encoder is a stacked bidirectional RNN that then outputs parameters
+to be used by the <code class="highlighter-rouge">sampling()</code> function. The resulting parameters are named <code class="highlighter-rouge">z_mean</code> and <code class="highlighter-rouge">z_log_var</code>. The sampling function simply takes a random sample of the appropriate size from a multivariate Gaussian distribution. Lastly, the VAE loss is just the standard reconstruction loss with added cross entropy loss.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">_build_encoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">latent_rep_size</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">epsilon_std</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Bidirectional</span><span class="p">(</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">return_sequences</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'lstm_1'</span><span class="p">),</span> <span class="n">merge_mode</span><span class="o">=</span><span class="s">'concat'</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Bidirectional</span><span class="p">(</span><span class="n">LSTM</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">return_sequences</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'lstm_2'</span><span class="p">),</span> <span class="n">merge_mode</span><span class="o">=</span><span class="s">'concat'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">435</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'relu'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'dense_1'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">sampling</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">z_mean_</span><span class="p">,</span> <span class="n">z_log_var_</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">z_mean_</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">latent_rep_size</span><span class="p">),</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">epsilon_std</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">z_mean_</span> <span class="o">+</span> <span class="n">K</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">z_log_var_</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span>
+
+    <span class="n">z_mean</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_rep_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'z_mean'</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'linear'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+    <span class="n">z_log_var</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="n">latent_rep_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'z_log_var'</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'linear'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">vae_loss</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_decoded_mean</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x_decoded_mean</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">x_decoded_mean</span><span class="p">)</span>
+        <span class="n">xent_loss</span> <span class="o">=</span> <span class="n">max_length</span> <span class="o">*</span> <span class="n">objectives</span><span class="o">.</span><span class="n">binary_crossentropy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_decoded_mean</span><span class="p">)</span>
+        <span class="n">kl_loss</span> <span class="o">=</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">K</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">z_log_var</span> <span class="o">-</span> <span class="n">K</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">z_mean</span><span class="p">)</span> <span class="o">-</span> <span class="n">K</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">z_log_var</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xent_loss</span> <span class="o">+</span> <span class="n">kl_loss</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">vae_loss</span><span class="p">,</span> <span class="n">Lambda</span><span class="p">(</span><span class="n">sampling</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="n">latent_rep_size</span><span class="p">,),</span> <span class="n">name</span><span class="o">=</span><span class="s">'lambda'</span><span class="p">)([</span><span class="n">z_mean</span><span class="p">,</span> <span class="n">z_log_var</span><span class="p">]))</span></code></pre>
+</figure>
+
+<h4 id="_build_decoderself-encoded-vocab_size-max_length">_build_decoder(self, encoded, vocab_size, max_length)</h4>
+<p>The decoder is simpler. What it does it take a latent space representation, repeat it for the maximum sequence length, and use that as input to a stacked RNN. 
+The output of the stacked RNN is then fed into a Dense layer which is applied to every single time step of the RNN output using the TimeDistributed wrapper. Notice
+how the Dense layer has a softmax activation since we will be outputting probabilities for the words in our vocabulary.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">_build_decoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">):</span>
+    <span class="n">repeated_context</span> <span class="o">=</span> <span class="n">RepeatVector</span><span class="p">(</span><span class="n">max_length</span><span class="p">)(</span><span class="n">encoded</span><span class="p">)</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">LSTM</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">return_sequences</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'dec_lstm_1'</span><span class="p">)(</span><span class="n">repeated_context</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">LSTM</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="n">return_sequences</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'dec_lstm_2'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="n">decoded</span> <span class="o">=</span> <span class="n">TimeDistributed</span><span class="p">(</span><span class="n">Dense</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'softmax'</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s">'decoded_mean'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">decoded</span></code></pre>
+</figure>
+
+<p>If the above decoder looks like its shape doesn’t match the shape of our input, you’ve made an astute observation. Recall that our input
+will have shape <code class="highlighter-rouge">(batch_size, max_length)</code> since that is a requirement for the Embedding layer. However, the output of the decoder has shape 
+<code class="highlighter-rouge">(batch_size, max_length, vocab_size)</code> since this is a requirement for the cross entropy part of the VAE loss function. This means that when we train the model,
+the input will be a numpy array where each row is a training example, and every column is a numerical index bounded by the number of words in our vocabulary. The 
+target output will just be a one-hot representation of the input matrix having shape <code class="highlighter-rouge">(num_examples, max_length, vocab_size)</code>.</p>
+
+<h4 id="_build_sentiment_predictorself-encoded">_build_sentiment_predictor(self, encoded)</h4>
+<p>Last but not least, let’s look at the sentiment prediction model. It is as simple as possible so that the latent space should in theory form two clearly separated 
+regions based on sentiment when projected with PCA. If the prediction model has too high a capacity, then the latent space won’t be encouraged to form a linearly separable
+shape. Notice that the final Dense layer has a sigmoid activation due to the fact that we are predicting binary outcomes.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">_build_sentiment_predictor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoded</span><span class="p">):</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'linear'</span><span class="p">)(</span><span class="n">encoded</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Dense</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s">'sigmoid'</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">'pred'</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span></code></pre>
+</figure>
+
+<h3 id="training-the-model">Training the Model</h3>
+<p>Here we will see how to create the inputs for our model and how to train it.</p>
+
+<p>Note that when training with GPU, I had to use the Theano backend as tensorflow was giving strange errors. Training using CPU presents no such issues.</p>
+
+<h4 id="imports-1">Imports</h4>
+<p>We import ModelCheckpoint so that we can save our model as it makes progress. The IMDB dataset is found in <code class="highlighter-rouge">keras.datasets</code></p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="kn">from</span> <span class="nn">keras.callbacks</span> <span class="kn">import</span> <span class="n">ModelCheckpoint</span>
+<span class="kn">from</span> <span class="nn">keras.datasets</span> <span class="kn">import</span> <span class="n">imdb</span>
+<span class="kn">from</span> <span class="nn">keras.preprocessing.sequence</span> <span class="kn">import</span> <span class="n">pad_sequences</span>
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">VAE</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span></code></pre>
+</figure>
+
+<h4 id="create-inputs">Create Inputs</h4>
+
+<p>We start off by defining the maximum number of words to be used, as well as the maximum length of any review.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">MAX_LENGTH</span> <span class="o">=</span> <span class="mi">300</span>
+<span class="n">NUM_WORDS</span> <span class="o">=</span> <span class="mi">1000</span></code></pre>
+</figure>
+
+<p>Next we load the data and inspect its shape.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">),</span> <span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">imdb</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">num_words</span><span class="o">=</span><span class="n">NUM_WORDS</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"Training data"</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">"Number of words:"</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">X_train</span><span class="p">))))</span></code></pre>
+</figure>
+
+<p>Let’s now zero-pad the sequences (reviews) and subset the data so that we can later create 
+one hot representations of it without running out of memory.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">X_train</span> <span class="o">=</span> <span class="n">pad_sequences</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">MAX_LENGTH</span><span class="p">)</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">pad_sequences</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">MAX_LENGTH</span><span class="p">)</span>
+
+<span class="n">train_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">2000</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">test_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span>
+<span class="n">y_train</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span>
+
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="p">[</span><span class="n">test_indices</span><span class="p">]</span>
+<span class="n">y_test</span> <span class="o">=</span> <span class="n">y_test</span><span class="p">[</span><span class="n">test_indices</span><span class="p">]</span></code></pre>
+</figure>
+
+<p>Here comes the tricky part. Making one hot representations of the reviews takes some clever indexing since we are
+trying to index a 3D array with 2D array.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">MAX_LENGTH</span><span class="p">,</span> <span class="n">NUM_WORDS</span><span class="p">))</span>
+<span class="n">temp</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">MAX_LENGTH</span><span class="p">)]),</span> <span class="n">X_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">X_train</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">X_train_one_hot</span> <span class="o">=</span> <span class="n">temp</span>
+
+<span class="n">temp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">MAX_LENGTH</span><span class="p">,</span> <span class="n">NUM_WORDS</span><span class="p">))</span>
+<span class="n">temp</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">MAX_LENGTH</span><span class="p">)]),</span> <span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">X_test</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">x_test_one_hot</span> <span class="o">=</span> <span class="n">temp</span></code></pre>
+</figure>
+
+<h4 id="create-checkpoint">Create Checkpoint</h4>
+<p>We want to be able to save our model at the end of each epoch if an improvement was made. This enables reproducibility of results, and if something goes wrong,
+we can reload the most recent model without having to restart the whole training procedure all over again.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">create_model_checkpoint</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+    <span class="n">filepath</span> <span class="o">=</span> <span class="nb">dir</span> <span class="o">+</span> <span class="s">'/'</span> <span class="o">+</span> \
+               <span class="n">model_name</span> <span class="o">+</span> <span class="s">"-{epoch:02d}-{val_decoded_mean_acc:.2f}-{val_pred_loss:.2f}.h5"</span>
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+
+    <span class="n">checkpointer</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="n">filepath</span><span class="o">=</span><span class="n">filepath</span><span class="p">,</span>
+                                   <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                   <span class="n">save_best_only</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">checkpointer</span></code></pre>
+</figure>
+
+<h4 id="fit-the-data">Fit the Data</h4>
+
+<p>We are almost done! All that remains is to instantiate the model and fit the data. The following function does just that.</p>
+
+<figure class="highlight">
+  <pre><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">train</span><span class="p">():</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">VAE</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">vocab_size</span><span class="o">=</span><span class="n">NUM_WORDS</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="n">MAX_LENGTH</span><span class="p">)</span>
+
+    <span class="n">checkpointer</span> <span class="o">=</span> <span class="n">create_model_checkpoint</span><span class="p">(</span><span class="s">'models'</span><span class="p">,</span> <span class="s">'rnn_ae'</span><span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">autoencoder</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="p">{</span><span class="s">'decoded_mean'</span><span class="p">:</span> <span class="n">X_train_one_hot</span><span class="p">,</span> <span class="s">'pred'</span><span class="p">:</span> <span class="n">y_train</span><span class="p">},</span>
+                          <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">checkpointer</span><span class="p">],</span>
+                          <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="p">{</span><span class="s">'decoded_mean'</span><span class="p">:</span> <span class="n">x_test_one_hot</span><span class="p">,</span> <span class="s">'pred'</span><span class="p">:</span>  <span class="n">y_test</span><span class="p">}))</span></code></pre>
+</figure>
+
+<h2 id="results">Results</h2>
+
+<p>I haven’t trained the model for long at this point, so the results aren’t noteworthy. Also, I haven’t yet investigated what the optimal
+number of parameters for the model is, so that remains to be seen. Furthermore, the memory limitation also puts an upper bound on the 
+quality of results that can be obtained.</p>
+
+<p>However, now that you know how to build such a model, you can apply it to other datasets that are less memory intensive and probably get some decent results.</p>
+
+<p>Stay tuned for further developments!</p>
+
+  </div>
+
+  
+</article>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Tech and Fitness Blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>
+            
+              George (Alex) Adam
+            
+            </li>
+            
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/georgeadam"><span class="icon icon--github"><svg viewBox="0 0 16 16" width="16px" height="16px"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">georgeadam</span></a>
+
+          </li>
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>Computer science grad student and fitness geek
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
