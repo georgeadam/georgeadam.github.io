@@ -2,7 +2,8 @@
 layout: post
 title:  "Varying Time Under Tension"
 date:   2017-05-09 3:40:22 -0500
-categories: general
+categories: fitness
+comments: true
 ---
 
 Time to touch on a totally different subject than the previous post.

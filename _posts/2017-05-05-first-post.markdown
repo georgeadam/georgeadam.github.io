@@ -3,6 +3,7 @@ layout: post
 title:  "First blog post!"
 date:   2017-05-05 1:00:00 -0500
 categories: general
+comments: true
 ---
 
 Hello world!

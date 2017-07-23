@@ -21,11 +21,14 @@ body {
   font-feature-settings: "kern" 1;
   font-kerning: normal; }
 
+.difficulty-rating * {
+  margin-bottom: 0px; }
+
 .img_container {
   text-align: center; }
 
 #profile img {
-  border-radius: 50%; } 
+  border-radius: 50%; }
 
 /**
  * Set `margin-bottom` to maintain vertical rhythm
