@@ -143,7 +143,7 @@ are all part of the VAE class created above.
 
 #### _build_encoder(self, x, latent_rep_size=200, max_length=300, epsilon_std=0.01)
 We'll start off with the encoder since it is the most complicated one. Essentially, the encoder is a stacked bidirectional RNN that then outputs parameters
-to be used by the `sampling()` function. The resulting parameters are named `z_mean` and `z_log_var`. The sampling function simply takes a random sample of the appropriate size from a multivariate Gaussian distribution. Lastly, the VAE loss is just the standard reconstruction loss with added cross entropy loss.
+to be used by the `sampling()` function. The resulting parameters are named `z_mean` and `z_log_var`. The sampling function simply takes a random sample of the appropriate size from a multivariate Gaussian distribution. Lastly, the VAE loss is just the standard reconstruction loss (cross entropy loss) with added KL-divergence loss.
 
 {% highlight python %}
 def _build_encoder(self, x, latent_rep_size=200, max_length=300, epsilon_std=0.01):
