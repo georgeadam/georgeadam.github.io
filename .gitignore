@@ -1,4 +1,6 @@
 .sass-cache
 .jekyll-metadata
 .sublime-project
+.sublime-workspace
 _site/
+*.vsdx
