@@ -5,6 +5,8 @@
 var disqus_config = function () {
 this.page.url = '{{ page.url | absolute_url }}';
 this.page.identifier = '{{ page.url | absolute_url }}';
+
+alert("{{site.url}}")
 };
 
 (function() {
@@ -16,4 +18,5 @@ s.setAttribute('data-timestamp', +new Date());
 </script>
 <noscript>Please enable JavaScript to view the comments.</noscript>
 {% endif %}
+
 
