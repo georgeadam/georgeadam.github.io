@@ -5,6 +5,8 @@
 var disqus_config = function () {
 this.page.url = '{{ page.url | absolute_url }}';
 this.page.identifier = '{{ page.url | absolute_url }}';
+
+alert(this.page.url)
 };
 
 (function() {
