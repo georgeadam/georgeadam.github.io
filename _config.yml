@@ -2,7 +2,7 @@ title: George (Alex) Adam # your site title
 author: GitHub User
 description: Tech and Fitness Blog # this means to ignore newlines until "baseurl:"
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "http://alexadam.ca" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  georgeadam # replace with your_github_username or comment to remove link from footer
 social:
   name: George Adam
