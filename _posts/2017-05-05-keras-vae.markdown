@@ -4,6 +4,7 @@ title:  "Text Variational Autoencoder in Keras"
 date:   2017-05-05 3:00:00 -0500
 categories: ml
 comments: true
+mathjax: true
 ---
 
 Welcome back guys.

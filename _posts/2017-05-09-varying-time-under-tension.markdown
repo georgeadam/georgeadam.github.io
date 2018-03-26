@@ -108,19 +108,25 @@ For example, a block can be focused on alternating between chest and back, or it
 Let's use the following chest and back block as a running example
 
 <div class="img_container">
-![Example Block](/assets/varying_time_under_tension/between_set_variability.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/between_set_variability.PNG">
+	</p>
 </div>
 
 Notice how the block alternates between chest and back. I like to have most of my blocks like this since it minimizes the time spent sitting around and waiting for the muscles to recover. Since we have 6 sets in this block, there are many ways in which we can add variability between sets. We will use the following color scheme to denote concentric, eccentric, and isometric sets
 
 <div class="img_container">
-![Legend](/assets/varying_time_under_tension/legend.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/legend.PNG" titlt="Legend">
+	</p>
 </div>
 
 Let's see a few basic methods and analyze them a little
 
 <div class="img_container">
-![Basic Methods](/assets/varying_time_under_tension/basic_between_set_variability.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/basic_between_set_variability.PNG" titlt="Legend">
+	</p>
 </div>
 
 ##### Alternating E-C
@@ -160,13 +166,17 @@ This set style involves performing reps with increasingly longer eccentric porti
 We first define a color legend so that the set will be easier to interpret. The legend labels such as "1U-2D" are to be interpreted as 1 second up and 2 seconds down.
 
 <div class="img_container">
-![Legend Eccentric Buildup](/assets/varying_time_under_tension/legend_eccentric_buildup.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/legend_eccentric_buildup.PNG" titlt="Legend">
+	</p>
 </div>
 
 This legend forshadows that the number of reps within the set will be a multiple of 3. Here is what an eccentric buildup set of 9 reps looks like.
 
 <div class="img_container">
-![Eccentric Buildup](/assets/varying_time_under_tension/eccentric_buildup.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/eccentric_buildup.PNG" titlt="Legend">
+	</p>
 </div>
 
 The great benefit of this type of set is that it allows you to experience several durations of the eccentric part of a repetition all within a single set.
@@ -178,13 +188,17 @@ Just like eccentric buildup sets, except that the concentric part of repetitions
 We define another color legend to denote the duration of every rep within the set. 
 
 <div class="img_container">
-![Legend Concentric Buildup](/assets/varying_time_under_tension/legend_concentric_buildup.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/legend_concentric_buildup.PNG" titlt="Legend">
+	</p>
 </div>
 
 We look at what a concentric buildup set of 9 reps looks like.
 
 <div class="img_container">
-![Eccentric Buildup](/assets/varying_time_under_tension/concentric_buildup.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/concentric_buildup.PNG" titlt="Legend">
+	</p>
 </div>
 
 Concentric buildup sets give you the change to experience several durations of the concentric part of a repetition all within a single set.
@@ -198,17 +212,23 @@ As always, a picture does more justice than a description.
 The last color legend of the day is read as follows: "2U-2D" means 2 seconds up and 2 seconds down; "1U-5H-1D" means 1 second up, a 5 second hold, and 1 second down. 
 
 <div class="img_container">
-![Legend Alternating Iso](/assets/varying_time_under_tension/legend_alternating_iso.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/legend_alternating_iso.PNG" titlt="Legend">
+	</p>
 </div>
 
 As you probably guessed, it's best to have an even number of reps when doing an alternating iso set, so we look at sets with 8 reps in them.
 
 <div class="img_container">
-![Alternating Iso 1](/assets/varying_time_under_tension/alternating_iso.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/alternating_iso.PNG" titlt="Legend">
+	</p>
 </div>
 
 <div class="img_container">
-![Alternating Iso 2](/assets/varying_time_under_tension/alternating_iso_v2.PNG)
+	<p>
+		<img src="/assets/varying_time_under_tension/alternating_iso_v2.PNG" titlt="Legend">
+	</p>
 </div>
 
 As you can see, using either type of alternating iso set, the number of iso reps is halved. This is a great compromise between regular reps and iso reps, and the benefits of both rep styles are realized within a single set!

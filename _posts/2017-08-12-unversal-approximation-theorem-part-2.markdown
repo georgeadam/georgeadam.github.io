@@ -4,6 +4,7 @@ title:  "Universal Approximation Theorem - Part 2"
 date:   2017-08-12 9:00:22 -0500
 categories: ml
 comments: true
+mathjax: true
 ---
 
 ## Introduction
@@ -74,7 +75,9 @@ def create_data(train_start, train_end, test_start, test_end, n, f, args):
 ### Define Model
 
 <div class="img_container">
-![Quartic Model Diagram](/assets/uat/quartic_model.png)
+    <p>
+        <img src="/assets/uat/quartic_model.png" titlt="Legend">
+    </p>
 </div>
 
 The above diagram shows our model at a high level with activation functions and biases suppressed. As you can see, it only has 5 neurons in the hidden layer! Less neurons might work too, but then it might take longer for the model to converge.
@@ -137,7 +140,9 @@ visualize_predictions(x_train, y_train, predictions)
 {% endhighlight %}
 
 <div class="img_container">
-![Quartic Training Set Performance](/assets/uat/quartic_training_performance.png)
+    <p>
+        <img src="/assets/uat/quartic_training_performance.png" titlt="Legend">
+    </p>
 </div>
 
 This is close to a near perfect fit, so what's the issue? Let's look at how this fit holds as we move farther away from the training interval.
@@ -150,7 +155,9 @@ visualize_predictions(x, y, predictions)
 {% endhighlight %}
 
 <div class="img_container">
-![Quartic Wide Performance](/assets/uat/quartic_wide_performance.png)
+    <p>
+        <img src="/assets/uat/quartic_wide_performance.png" titlt="Legend">
+    </p>
 </div>
 
 Alas, the overfitting that I was talking about this entire time finally makes an appearance. Let's consider why this happens. The function is essentially being fit by a linear combination of sigmoid functions. These sigmoid functions are curved enough that a combination of them can be aligned so that they touch our function of interest quite well. However, sigmoid functions plateau as $$x$$ moves away from the inflection point, so we get the kind of behaviour seen above where our predictions suddenly stop following the shape of the target function.
@@ -205,9 +212,10 @@ visualize_multiple_predictions(x, y, sigmoid_predictions)
 {% endhighlight %}
 
 <div class="img_container">
-![Individual Sigmoids](/assets/uat/individual_sigmoids.png)
+    <p>
+        <img src="/assets/uat/individual_sigmoids.png" titlt="Legend">
+    </p>
 </div>
-
 
 All of these sigmoids are added together to make the overall prediction of our network that was seen earlier. Even though this hasn't been a rigorous mathematical argument, I hope that this empirical evidence convinces you that neural networks can overfit even very simple datasets without any noise.
 

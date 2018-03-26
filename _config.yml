@@ -1,38 +1,40 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
-
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
-title: George (Alex) Adam
-desc_2: Tech and Fitness Blog
-comments: true
-# email: your-email@domain.com
-description: > # this means to ignore newlines until "baseurl:"
-  Computer science grad student and fitness geek
+title: George (Alex) Adam # your site title
+author: GitHub User
+description: Tech and Fitness Blog # this means to ignore newlines until "baseurl:"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
-# twitter_username: jekyllrb
-github_username:  georgeadam
-linkedin_username: alex-adam-23ba02107
+github_username:  georgeadam # replace with your_github_username or comment to remove link from footer
+social:
+  name: George Adam
+  links:
+    - https://www.linkedin.com/in/alex-adam-23ba02107/
+    - https://github.com/georgeadam
+
+disqus:
+  shortname: alexadam-ca # to enable comments replace with your_disqus_shortname
 
 # Build settings
 markdown: kramdown
-# theme: minima
-gems:
-  - jekyll-feed
+highlighter: rouge # or pygments or null
+theme: jekyll-sleek
 exclude:
+  - README.md
+  - node_modules
+  - script
+  - package.json
+  - package-lock.json
   - Gemfile
   - Gemfile.lock
+  - vendor
+  - npm-debug.log
+  - gulpfile.js
+  - sleek.jpg
 
-kramdown:
-  parse_block_html: true
+include: ['_pages']
+
+compress_html:
+  clippings: all
+
+plugins:
+  - jekyll-sitemap
+  - jekyll-seo-tag

@@ -4,6 +4,7 @@ title:  "Universal Approximation Theorem - Part 1"
 date:   2017-08-10 9:00:22 -0500
 categories: ml
 comments: true
+mathjax: true
 ---
 
 ## Introduction
@@ -58,9 +59,10 @@ def create_linear_model_data(w, b, n):
 {% endhighlight %}
 
 ### Define Model
-
 <div class="img_container">
-![Linear Model Diagram](/assets/uat/linear_model.png)
+    <p>
+        <img src="/assets/uat/linear_model.png" titlt="Legend">
+    </p>
 </div>
 
 Since we are working with a univariate linear function, our neural network doesn't even need a hidden layer! This way of framing the problem allows us to learn the actual weight and bias of our model. When we'll try to fit more complicated functions in part 2 of the blog series, we'll see how this isn't possible given the available activation functions, so we'll have to resort to evaluating those models using just the test data and not the weights fit.
@@ -130,7 +132,9 @@ visualize_predictions(x_test, y_test, predicted)
 {% endhighlight %}
 
 <div class="img_container">
-![Linear Model Performance](/assets/uat/linear_performance.png)
+    <p>
+        <img src="/assets/uat/linear_performance.png" titlt="Legend">
+    </p>
 </div>
 
 I know that some of you advanced readers were bored to death by this blog post, but it is an essential building block for the more intricate posts to follow. Next time, we will try to fit more advanced functions and see how overfitting comes into play. For now, play around with the code and see how adding noise to the dataset makes it harder for the model to learn the right weights.
