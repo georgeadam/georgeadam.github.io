@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Early Stopping and its Faults"
-date:   2018-04-29 20:00:22 -0500
+date:   2018-08-02 22:24:22 -0500
 categories: ml
 comments: true
 mathjax: true
