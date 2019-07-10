@@ -95,9 +95,9 @@ The decisions made by the controller at each time step are extremely limited. Th
 
 In our experiments, as well as those done in concurrent work by [Sciuto et al.](https://arxiv.org/pdf/1902.08142.pdf) and [Li and Talwakar](https://arxiv.org/pdf/1902.07638.pdf), there seems to be litte to no benefit to using the RL-based controller vs random search to explore the space of architectures. We focus on ENAS for the Penn Treebank language modelling task where the goal is to generate a recurrent cell. As seen in the below figure, when sampling 1000 architectures from a trained controller as oppposed to sampling 1000 architectures from an untrained controller, the trained controller does do better, but this can be explained by the weight sharing scheme rather than the controller's ability to explore the search space. A trained controller samples a less diverse set of architectures, since by definition it has to be biased. This means that when the shared parameters are updated during training, they have to be effective for less architectures. On the other hand, a random controller samples much more varied architectures, so the shared parameters are updated in an attempt to be effective for too many architectures, but do not end up being particularly effective for any given architecture.
 
- <div class="img_container">
+<div class="img_container">
     <p>
-        <img src="/assets/nas/random_vs_trained_performance.png" >
+        <img src="/assets/nas/performance.png" >
     </p>
 </div>
 
@@ -107,9 +107,9 @@ If using an RL-based controller does not definitively do better than random sear
 
 The below figure visualizes the hidden state of the RNN controller for 100 sampled architecture (each row corresponds to the controller hidden state for a single architecture). Notice that in (a), all the rows are the same, even though the sampled architectures are distinct, which demonstrates that the controller does not encode architecture choices in its hidden state. 
 
- <div class="img_container">
+<div class="img_container">
     <p>
-        <img src="/assets/nas/hidden_state_visualization.png" >
+        <img src="/assets/nas/hidden_state.png" >
     </p>
 </div>
 
@@ -122,9 +122,9 @@ This regularization works similar to how language modelling with RNNs is done in
 
 To confirm that this regularization actually makes controller embeddings that provide a meaningful similarity between architectures, we correlated the L2 distance between architecture embeddings and various intuitive notions of architecture similarity such as the number of activation functions, or connections in common between the sampled DAGs. As seen in the below table, the regularization gives the best Spearman correlation, but it's still quite low. It is likely that a less ad-hoc way enforcing architecture memorization in the controller might help increase correlations even more.
 
- <div class="img_container">
+<div class="img_container">
     <p>
-        <img src="/assets/nas/architecture_similarity_correlations.png" >
+        <img src="/assets/nas/similarity_correlations.png" >
     </p>
 </div>
 
