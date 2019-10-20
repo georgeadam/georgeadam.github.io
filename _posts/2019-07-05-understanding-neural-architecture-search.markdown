@@ -5,6 +5,7 @@ date:   2019-07-10 10:00:00 -0500
 categories: ml
 comments: true
 mathjax: true
+featured-img: nas_background
 ---
 
 ## Introduction
