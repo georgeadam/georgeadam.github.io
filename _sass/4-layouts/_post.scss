@@ -125,10 +125,14 @@
   }
 
   @media only screen and (max-width: $mobile) {
-    margin: 40px auto;
+    margin: 0px auto;
 
     &.post-no-image {
       margin: 0 auto 40px;
+    }
+
+  @media only screen and (min-width: $mobile) {
+      margin-top: 30px;
     }
   }
 
@@ -218,7 +222,7 @@
       
       a {
         display: inline-block;
-        max-width: 576px;
+        max-width: 300px;
         padding: 0 10px;
         vertical-align: middle;
         white-space: nowrap;
@@ -283,15 +287,19 @@
 }
 
 .col-11 {
-  width: 50%;
-  max-width: 600px;
-  min-width: 480px;
+  @media only screen and (min-width: $desktop) {
+    width: 50%;
+    max-width: 600px;
+    min-width: 480px;
+  }
 }
 
 .col-8 {
-  width: 50%;
-  max-width: 600px;
-  min-width: 480px;
+  @media only screen and (min-width: $desktop) {
+    width: 50%;
+    max-width: 600px;
+    min-width: 480px;
+  }
 }
 
 .push-2 {
