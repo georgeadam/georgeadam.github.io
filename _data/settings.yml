@@ -27,13 +27,13 @@ linkedin: https://www.linkedin.com/in/alex-a-23ba02107/
 
 #-------------------------------
 # Comment Section (Disqus)
-disqus-identifier: disqus_PdgWMQbsRI # add your shortname for Disqus Comment. For example mr-brown
+disqus-identifier: # add your shortname for Disqus Comment. For example mr-brown
 
 
 #-------------------------------
 # Instagram Feed
 instafeed: # To enable the instafeed, use the value true. To turn off use the value false.
-instagram-profile: artemsheludko_ # Add instagram username
+instagram-profile: # Add instagram username
 
 
 #-------------------------------
