@@ -1,0 +1,46 @@
+#-------------------------------
+# General Site Settings
+title: Intelligence Operationalized
+logo: new_logo.svg # You can add own logo.
+description: A blog for ML practitioners
+
+
+#-------------------------------
+# Author Settings
+author:
+  name: Alex Adam
+  image: headshot.jpg
+  say-hello: Hello, I’m <strong>Alex Adam</strong>
+  bio: I'm a PhD researcher at the University of Toronto focused on making the deployment of deep learning models safe, robust, and reliable.
+  # bio: Designs, talks, and writes about <strong>web</strong>, <strong>ethics</strong>, <strong>privacy</strong>, and dev. I share design tutorials, free resources and inspiration. Loves <a href="#">music</a> & riding his bicycle.
+
+
+#-------------------------------
+# Contact links
+twitter: https://twitter.com/ # Add your Twitter handle
+facebook: https://facebook.com/ # Add your Facebook handle
+dribbble: https://dribbble.com/ # Add your Dribbble handle
+instagram: https://instagram.com/ # Add your Instagram handle
+pinterest: https://pinterest.com/ # Add your Pinterest handle
+linkedin: https://www.linkedin.com/in/alex-a-23ba02107/
+
+
+#-------------------------------
+# Comment Section (Disqus)
+disqus-identifier: disqus_PdgWMQbsRI # add your shortname for Disqus Comment. For example mr-brown
+
+
+#-------------------------------
+# Instagram Feed
+instafeed: # To enable the instafeed, use the value true. To turn off use the value false.
+instagram-profile: artemsheludko_ # Add instagram username
+
+
+#-------------------------------
+# Google Analytics
+google-analytics: UA-103243829-1 # Add your identifier. For example UA-99631805-1.
+
+
+#-------------------------------
+# Newsletter
+mailchimp: # Add your MailChimp form identifier. For example - blogenjoyfreedom.us16.list-manage.com/subscribe/post?u=cd56155d76ddeeb4c0bc4d080&amp;id=7a526cd13e
